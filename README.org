@@ -1,0 +1,17 @@
+#+title: Readme
+
+* starintel discord bot
+This bot is a operations management interface.
+
+** TODO CMD's
++ [ ] /createOperation
++ [ ] /deleteOperation
++ [ ] /newDataset
++ [ ] /operationAddDataset
++ [ ] createTarget
++ [ ] /deleteTarget
++ [ ] /jobs
++ [ ] /search
++ [ ] /debug
+* Community
+Use this bot for good, do not ruin the good thing.
