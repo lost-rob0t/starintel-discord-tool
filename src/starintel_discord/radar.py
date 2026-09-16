@@ -15,7 +15,10 @@ log = logging.getLogger(__name__)
 
 
 class ChannelResolver(Protocol):
-    def get_channel(self, channel_id: int) -> discord.abc.GuildChannel | discord.Thread | None: ...
+    def get_channel(
+        self,
+        channel_id: int,
+    ) -> discord.abc.GuildChannel | discord.Thread | None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,7 +32,15 @@ class RadarSettings:
 class RadarActor:
     """One mailbox-driven actor owns one configured radar."""
 
-    def __init__(self, spec: RadarSpec, *, client: StarIntelClient, store: StateStore, channel_resolver: ChannelResolver, settings: RadarSettings) -> None:
+    def __init__(
+        self,
+        spec: RadarSpec,
+        *,
+        client: StarIntelClient,
+        store: StateStore,
+        channel_resolver: ChannelResolver,
+        settings: RadarSettings,
+    ) -> None:
         self.spec = spec
         self.client = client
         self.store = store
@@ -42,8 +53,14 @@ class RadarActor:
     def start(self) -> None:
         if self._task is not None:
             return
-        self._task = asyncio.create_task(self._run(), name=f"radar-actor-{self.spec.id}")
-        self._timer = asyncio.create_task(self._tick(), name=f"radar-timer-{self.spec.id}")
+        self._task = asyncio.create_task(
+            self._run(),
+            name=f"radar-actor-{self.spec.id}",
+        )
+        self._timer = asyncio.create_task(
+            self._tick(),
+            name=f"radar-timer-{self.spec.id}",
+        )
         self.tell("poll")
 
     def tell(self, message: str) -> None:
@@ -54,7 +71,10 @@ class RadarActor:
         for task in (self._timer, self._task):
             if task:
                 task.cancel()
-        await asyncio.gather(*(task for task in (self._timer, self._task) if task), return_exceptions=True)
+        await asyncio.gather(
+            *(task for task in (self._timer, self._task) if task),
+            return_exceptions=True,
+        )
         self._task = None
         self._timer = None
 
@@ -78,7 +98,12 @@ class RadarActor:
 
     async def poll(self) -> int:
         try:
-            result = await self.client.search(self.spec.query, dataset=self.spec.dataset, tenant_id=self.spec.tenant_id, source_dataset=self.spec.source_dataset, order_by="date", limit=self.settings.search_limit)
+            result = await self.client.search(
+                self.spec.query,
+                dataset=self.spec.dataset,
+                tenant_id=self.spec.tenant_id,
+                limit=self.settings.search_limit,
+            )
         except StarIntelError as exc:
             log.warning("radar %s StarIntel query failed: %s", self.spec.id, exc)
             return 0
@@ -87,27 +112,54 @@ class RadarActor:
         first_poll = not self.spec.bootstrapped
         if first_poll:
             self.store.mark_bootstrapped(self.spec.id)
-            self.spec = RadarSpec(id=self.spec.id, guild_id=self.spec.guild_id, channel_id=self.spec.channel_id, query=self.spec.query, dataset=self.spec.dataset, tenant_id=self.spec.tenant_id, source_dataset=self.spec.source_dataset, created_by=self.spec.created_by, enabled=self.spec.enabled, bootstrapped=True)
+            self.spec = RadarSpec(
+                id=self.spec.id,
+                guild_id=self.spec.guild_id,
+                channel_id=self.spec.channel_id,
+                query=self.spec.query,
+                dataset=self.spec.dataset,
+                tenant_id=self.spec.tenant_id,
+                source_dataset=None,
+                created_by=self.spec.created_by,
+                enabled=self.spec.enabled,
+                bootstrapped=True,
+            )
             if self.settings.bootstrap_silently:
                 return 0
 
-        new_docs = [doc for doc in result.documents if document_key(doc) in new_keys]
+        new_docs = [
+            doc for doc in result.documents if document_key(doc) in new_keys
+        ]
         if not new_docs:
             return 0
         new_docs = list(reversed(new_docs[: self.settings.max_posts_per_poll]))
         channel = self.channel_resolver.get_channel(self.spec.channel_id)
         if not isinstance(channel, (discord.TextChannel, discord.Thread)):
-            log.warning("radar %s channel %s is unavailable", self.spec.id, self.spec.channel_id)
+            log.warning(
+                "radar %s channel %s is unavailable",
+                self.spec.id,
+                self.spec.channel_id,
+            )
             return 0
         posted = 0
         for document in new_docs:
-            await channel.send(format_document_markdown(document), suppress_embeds=False)
+            await channel.send(
+                format_document_markdown(document),
+                suppress_embeds=False,
+            )
             posted += 1
         return posted
 
 
 class RadarSupervisor:
-    def __init__(self, *, client: StarIntelClient, store: StateStore, channel_resolver: ChannelResolver, settings: RadarSettings) -> None:
+    def __init__(
+        self,
+        *,
+        client: StarIntelClient,
+        store: StateStore,
+        channel_resolver: ChannelResolver,
+        settings: RadarSettings,
+    ) -> None:
         self.client = client
         self.store = store
         self.channel_resolver = channel_resolver
@@ -125,7 +177,13 @@ class RadarSupervisor:
                 continue
             if current:
                 await current.stop()
-            actor = RadarActor(spec, client=self.client, store=self.store, channel_resolver=self.channel_resolver, settings=self.settings)
+            actor = RadarActor(
+                spec,
+                client=self.client,
+                store=self.store,
+                channel_resolver=self.channel_resolver,
+                settings=self.settings,
+            )
             self._actors[radar_id] = actor
             actor.start()
 
@@ -139,4 +197,7 @@ class RadarSupervisor:
     async def close(self) -> None:
         actors = tuple(self._actors.values())
         self._actors.clear()
-        await asyncio.gather(*(actor.stop() for actor in actors), return_exceptions=True)
+        await asyncio.gather(
+            *(actor.stop() for actor in actors),
+            return_exceptions=True,
+        )
