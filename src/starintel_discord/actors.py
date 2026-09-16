@@ -41,7 +41,7 @@ class ActorCatalog:
         client: StarIntelClient,
         fallback_ids: Iterable[str],
         *,
-        dataset: str,
+        dataset: str | None,
         tenant_id: str | None,
     ) -> None:
         self.client = client
@@ -50,7 +50,9 @@ class ActorCatalog:
         self.tenant_id = tenant_id
 
     async def list(self) -> tuple[ActorInfo, ...]:
-        actors: dict[str, ActorInfo] = {actor_id: ActorInfo(actor_id) for actor_id in self.fallback_ids}
+        actors: dict[str, ActorInfo] = {
+            actor_id: ActorInfo(actor_id) for actor_id in self.fallback_ids
+        }
         try:
             result = await self.client.search(
                 "actor-manifest",
