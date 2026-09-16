@@ -1,0 +1,41 @@
+[discord]
+# Token is intentionally environment-only: STARINTEL_DISCORD_TOKEN
+owner_ids = []
+# Optional IDs that are authorized on first boot. Runtime grants are persisted in SQLite.
+authorized_user_ids = []
+# Empty means global command sync. Set guild IDs for instant development sync.
+guild_ids = []
+
+[starintel]
+base_url = "http://127.0.0.1:5000"
+# API key is intentionally environment-only: STARINTEL_API_KEY
+default_dataset = "llm"
+default_tenant_id = "llm"
+# These are autocomplete/discovery hints, not an authorization boundary. The StarIntel API key
+# remains authoritative for which datasets/tenants can actually be queried.
+dataset_hints = ["llm"]
+request_timeout_seconds = 30.0
+
+[radar]
+state_path = "./state/starintel-discord.sqlite3"
+poll_seconds = 15
+search_limit = 100
+max_posts_per_poll = 20
+bootstrap_silently = true
+
+[pro_actors]
+# Fallback catalog; /actors also discovers actor-manifest documents from StarIntel when available.
+actor_ids = [
+  "bluesky",
+  "generate-usernames",
+  "melissa",
+  "whats-my-name-user-hunt",
+  "reddit",
+  "youtube",
+  "web",
+  "crimethinc-podcasts",
+  "telegram",
+  "user-hunt",
+  "x",
+  "username-targets",
+]
