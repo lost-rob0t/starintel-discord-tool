@@ -39,4 +39,8 @@ actor_ids = [
   "user-hunt",
   "x",
   "username-targets",
+  "cracked",
+  "org-member",
+  "kiwifarms",
+  "background-report",
 ]

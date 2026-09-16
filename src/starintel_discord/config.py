@@ -51,6 +51,10 @@ DEFAULT_PRO_ACTORS = (
     "user-hunt",
     "x",
     "username-targets",
+    "cracked",
+    "org-member",
+    "kiwifarms",
+    "background-report",
 )
 
 
@@ -88,7 +92,9 @@ def _ints(value: object, *, field_name: str) -> tuple[int, ...]:
 def _strings(value: object, *, field_name: str) -> tuple[str, ...]:
     if value is None:
         return ()
-    if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
+    if not isinstance(value, list) or not all(
+        isinstance(item, str) and item.strip() for item in value
+    ):
         raise ConfigError(f"{field_name} must be an array of non-empty strings")
     return tuple(dict.fromkeys(item.strip() for item in value))
 
@@ -112,7 +118,12 @@ def load_config(path: str | os.PathLike[str] | None = None) -> AppConfig:
     if not api_key:
         raise ConfigError("STARINTEL_API_KEY is required")
 
-    base_url = str(os.getenv("STARINTEL_SERVER_URL", star_raw.get("base_url", "http://127.0.0.1:5000"))).rstrip("/")
+    base_url = str(
+        os.getenv(
+            "STARINTEL_SERVER_URL",
+            star_raw.get("base_url", "http://127.0.0.1:5000"),
+        )
+    ).rstrip("/")
     if not base_url.startswith(("http://", "https://")):
         raise ConfigError("starintel.base_url must start with http:// or https://")
 
@@ -123,7 +134,10 @@ def load_config(path: str | os.PathLike[str] | None = None) -> AppConfig:
     tenant_raw = star_raw.get("default_tenant_id", "llm")
     default_tenant_id = None if tenant_raw in (None, "") else str(tenant_raw).strip()
 
-    hints = _strings(star_raw.get("dataset_hints", [default_dataset]), field_name="starintel.dataset_hints")
+    hints = _strings(
+        star_raw.get("dataset_hints", [default_dataset]),
+        field_name="starintel.dataset_hints",
+    )
     if default_dataset not in hints:
         hints = (default_dataset, *hints)
 
@@ -149,11 +163,19 @@ def load_config(path: str | os.PathLike[str] | None = None) -> AppConfig:
     return AppConfig(
         discord=DiscordConfig(
             token=token,
-            owner_ids=frozenset(_ints(discord_raw.get("owner_ids", []), field_name="discord.owner_ids")),
-            authorized_user_ids=frozenset(
-                _ints(discord_raw.get("authorized_user_ids", []), field_name="discord.authorized_user_ids")
+            owner_ids=frozenset(
+                _ints(discord_raw.get("owner_ids", []), field_name="discord.owner_ids")
             ),
-            guild_ids=_ints(discord_raw.get("guild_ids", []), field_name="discord.guild_ids"),
+            authorized_user_ids=frozenset(
+                _ints(
+                    discord_raw.get("authorized_user_ids", []),
+                    field_name="discord.authorized_user_ids",
+                )
+            ),
+            guild_ids=_ints(
+                discord_raw.get("guild_ids", []),
+                field_name="discord.guild_ids",
+            ),
         ),
         starintel=StarIntelConfig(
             base_url=base_url,
@@ -161,10 +183,14 @@ def load_config(path: str | os.PathLike[str] | None = None) -> AppConfig:
             default_dataset=default_dataset,
             default_tenant_id=default_tenant_id,
             dataset_hints=hints,
-            request_timeout_seconds=float(star_raw.get("request_timeout_seconds", 30.0)),
+            request_timeout_seconds=float(
+                star_raw.get("request_timeout_seconds", 30.0)
+            ),
         ),
         radar=RadarConfig(
-            state_path=Path(str(radar_raw.get("state_path", "./state/starintel-discord.sqlite3"))),
+            state_path=Path(
+                str(radar_raw.get("state_path", "./state/starintel-discord.sqlite3"))
+            ),
             poll_seconds=poll_seconds,
             search_limit=search_limit,
             max_posts_per_poll=max_posts,
