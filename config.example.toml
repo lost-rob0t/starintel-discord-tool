@@ -9,9 +9,10 @@ guild_ids = []
 [starintel]
 base_url = "http://127.0.0.1:5000"
 # API key is intentionally environment-only: STARINTEL_API_KEY
+# Target dispatch defaults here. Search/radar omit dataset by default and search tenant-wide.
 default_dataset = "llm"
 default_tenant_id = "llm"
-# These are autocomplete/discovery hints, not an authorization boundary. The StarIntel API key
+# These are discovery hints, not an authorization boundary. The StarIntel API key
 # remains authoritative for which datasets/tenants can actually be queried.
 dataset_hints = ["llm"]
 request_timeout_seconds = 30.0
@@ -38,4 +39,8 @@ actor_ids = [
   "user-hunt",
   "x",
   "username-targets",
+  "cracked",
+  "org-member",
+  "kiwifarms",
+  "background-report",
 ]

@@ -4,7 +4,7 @@ Python Discord operations client for StarIntel. The old Nim stub is gone; this r
 
 ## What it does
 
-- `/search` — authorized search across StarIntel datasets/tenants. Defaults to dataset `llm`, tenant `llm`, so GPT auto-dig data is the default view.
+- `/search` — authorized search across StarIntel datasets/tenants. With no dataset argument it searches every dataset authorized in tenant `llm`, covering the full GPT auto-dig corpus by default.
 - `/datasets` — shows the configured dataset/tenant defaults and discovery hints. Dataset authorization is deliberately delegated to the StarIntel API credential instead of duplicated in Discord.
 - `/target create` — dispatches canonical `POST /api/v1/targets` requests, including pro-actor targets.
 - `/actors` — lists the bundled pro-actor catalog and overlays any `actor-manifest` documents discoverable through StarIntel.
@@ -33,7 +33,16 @@ starintel-discord
 
 Secrets are intentionally not accepted from TOML. `STARINTEL_DISCORD_TOKEN` and `STARINTEL_API_KEY` must come from the environment (or an infra-managed environment file/credential mechanism).
 
-The default config uses dataset `llm` and tenant `llm`; `dataset_hints` only drives discovery documentation. Users can request other datasets and the StarIntel server decides whether the API key can access them.
+The default config uses:
+
+```toml
+[starintel]
+default_dataset = "llm"
+default_tenant_id = "llm"
+dataset_hints = ["llm"]
+```
+
+`default_dataset` is the target-dispatch default. Search, `/document`, actor discovery, and `/radar` omit the dataset unless you supply one, so tenant `llm` can see the whole authorized auto-dig corpus. `dataset_hints` is informational; the StarIntel server decides which datasets the API key may access.
 
 ## Radar semantics
 
@@ -43,7 +52,7 @@ Radar state and Discord authorization are stored in SQLite (`state/starintel-dis
 
 ## Pro actors
 
-The fallback catalog is derived from `lost-rob0t/starintel-pro-actors` and includes collectors/enrichers such as `reddit`, `x`, `telegram`, `youtube`, `web`, `user-hunt`, `whats-my-name-user-hunt`, `generate-usernames`, and `username-targets`. `/actors` also looks for current `actor-manifest` documents in StarIntel, so deployed manifests can override fallback metadata without a bot release.
+The fallback catalog is derived from `lost-rob0t/starintel-pro-actors` and includes collectors/enrichers such as `reddit`, `x`, `telegram`, `youtube`, `web`, `user-hunt`, `whats-my-name-user-hunt`, `generate-usernames`, and `username-targets`. `/actors` also looks for current `actor-manifest` documents in StarIntel, so deployed manifests can override the fallback metadata without a bot release.
 
 ## Development
 
