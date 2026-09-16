@@ -59,7 +59,6 @@ class ActorCatalog:
                 dataset=self.dataset,
                 tenant_id=self.tenant_id,
                 limit=100,
-                order_by="date",
             )
         except StarIntelError:
             return tuple(actors.values())

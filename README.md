@@ -4,7 +4,7 @@ Python Discord operations client for StarIntel. The old Nim stub is gone; this r
 
 ## What it does
 
-- `/search` — authorized search across StarIntel datasets/tenants. With no dataset argument it searches every dataset authorized in tenant `llm`, covering the full GPT auto-dig corpus by default.
+- `/search` — authenticated search across StarIntel datasets/tenants. With no dataset argument it searches every dataset authorized in tenant `llm`, covering the full GPT auto-dig corpus by default.
 - `/datasets` — shows the configured dataset/tenant defaults and discovery hints. Dataset authorization is deliberately delegated to the StarIntel API credential instead of duplicated in Discord.
 - `/target create` — dispatches canonical `POST /api/v1/targets` requests, including pro-actor targets.
 - `/actors` — lists the bundled pro-actor catalog and overlays any `actor-manifest` documents discoverable through StarIntel.
@@ -14,12 +14,12 @@ Python Discord operations client for StarIntel. The old Nim stub is gone; this r
 
 ## StarIntel API contract
 
-The bot talks only to the versioned server contract:
+The bot uses the authenticated canonical document-search contract and the v1 target contract:
 
-- `GET /api/v1/search` with `q`, `dataset`, `tenant_id`, `source_dataset`, `offset`, `limit`, and `order_by`.
+- `GET /api/v1/documents/search` with `q`, optional `dataset`, `tenant`, `bookmark`, `sort`, and `limit`.
 - `POST /api/v1/targets` with `actor`, `target`, optional `workspace_id`, `dataset`, `kind`, and `metadata`.
 
-The API bearer token remains the source of truth for tenant/dataset authorization. Discord authorization is an additional operator gate, not a replacement for StarIntel authorization.
+It deliberately does **not** use `/api/v1/search`: that route is the server-owned public-read surface and does not accept caller-controlled tenant/dataset scope. The API bearer token remains the source of truth for tenant/dataset authorization. Discord authorization is an additional operator gate, not a replacement for StarIntel authorization.
 
 ## Configure
 
@@ -52,7 +52,7 @@ Radar state and Discord authorization are stored in SQLite (`state/starintel-dis
 
 ## Pro actors
 
-The fallback catalog is derived from `lost-rob0t/starintel-pro-actors` and includes collectors/enrichers such as `reddit`, `x`, `telegram`, `youtube`, `web`, `user-hunt`, `whats-my-name-user-hunt`, `generate-usernames`, and `username-targets`. `/actors` also looks for current `actor-manifest` documents in StarIntel, so deployed manifests can override the fallback metadata without a bot release.
+The fallback catalog is derived from `lost-rob0t/starintel-pro-actors` and includes collectors/enrichers such as `reddit`, `x`, `telegram`, `youtube`, `web`, `cracked`, `org-member`, `kiwifarms`, `background-report`, `user-hunt`, `whats-my-name-user-hunt`, `generate-usernames`, and `username-targets`. `/actors` also looks for current `actor-manifest` documents in StarIntel, so deployed manifests can override fallback metadata without a bot release.
 
 ## Development
 

@@ -20,7 +20,7 @@ class SearchResult:
     count: int
     dataset: str | None = None
     tenant_id: str | None = None
-    source_dataset: str | None = None
+    bookmark: str | None = None
 
 
 class StarIntelClient:
@@ -61,10 +61,39 @@ class StarIntelClient:
         try:
             body = response.json()
         except ValueError as exc:
-            raise StarIntelError("StarIntel returned non-JSON data", status_code=response.status_code) from exc
+            raise StarIntelError(
+                "StarIntel returned non-JSON data",
+                status_code=response.status_code,
+            ) from exc
         if not isinstance(body, dict):
-            raise StarIntelError("StarIntel returned a non-object JSON payload", status_code=response.status_code)
+            raise StarIntelError(
+                "StarIntel returned a non-object JSON payload",
+                status_code=response.status_code,
+            )
         return body
+
+    @staticmethod
+    def _documents_from_search_body(body: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+        documents = body.get("documents")
+        if isinstance(documents, list):
+            return tuple(item for item in documents if isinstance(item, dict))
+
+        rows = body.get("rows")
+        if not isinstance(rows, list):
+            raise StarIntelError("StarIntel search response has no rows/documents array")
+
+        parsed: list[dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            document = row.get("doc")
+            if isinstance(document, dict):
+                parsed.append(document)
+                continue
+            fields = row.get("fields")
+            if isinstance(fields, dict):
+                parsed.append(fields)
+        return tuple(parsed)
 
     async def search(
         self,
@@ -72,39 +101,34 @@ class StarIntelClient:
         *,
         dataset: str | None = None,
         tenant_id: str | None = None,
-        source_dataset: str | None = None,
-        order_by: str | None = None,
         limit: int = 20,
-        offset: int = 0,
+        bookmark: str | None = None,
+        sort: str | None = None,
     ) -> SearchResult:
-        params: dict[str, str | int] = {"q": query, "limit": limit, "offset": offset}
+        params: dict[str, str | int] = {"q": query, "limit": limit}
         if dataset:
             params["dataset"] = dataset
         if tenant_id:
-            params["tenant_id"] = tenant_id
-        if source_dataset:
-            params["source_dataset"] = source_dataset
-        if order_by:
-            params["order_by"] = order_by
+            params["tenant"] = tenant_id
+        if bookmark:
+            params["bookmark"] = bookmark
+        if sort:
+            params["sort"] = sort
 
-        body = await self._json("GET", "/api/v1/search", params=params)
-        docs = body.get("documents", [])
-        if not isinstance(docs, list):
-            raise StarIntelError("StarIntel search response has no document array")
-        documents = tuple(item for item in docs if isinstance(item, dict))
-        count = body.get("count", len(documents))
+        body = await self._json("GET", "/api/v1/documents/search", params=params)
+        documents = self._documents_from_search_body(body)
+        raw_count = body.get("count", body.get("total_rows", body.get("total", len(documents))))
         try:
-            count_int = int(count)
+            count = int(raw_count)
         except (TypeError, ValueError):
-            count_int = len(documents)
+            count = len(documents)
+        result_bookmark = body.get("bookmark")
         return SearchResult(
             documents=documents,
-            count=count_int,
-            dataset=body.get("dataset") if isinstance(body.get("dataset"), str) else dataset,
-            tenant_id=body.get("tenant_id") if isinstance(body.get("tenant_id"), str) else tenant_id,
-            source_dataset=(
-                body.get("source_dataset") if isinstance(body.get("source_dataset"), str) else source_dataset
-            ),
+            count=count,
+            dataset=dataset,
+            tenant_id=tenant_id,
+            bookmark=result_bookmark if isinstance(result_bookmark, str) else None,
         )
 
     async def create_target(

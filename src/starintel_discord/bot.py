@@ -91,29 +91,40 @@ class StarIntelBot(commands.Bot):
     async def _require_operator(self, interaction: discord.Interaction) -> bool:
         if self._is_operator(interaction):
             return True
-        await interaction.response.send_message("Not authorized for StarIntel operations.", ephemeral=True)
+        await interaction.response.send_message(
+            "Not authorized for StarIntel operations.",
+            ephemeral=True,
+        )
         return False
 
     async def _require_admin(self, interaction: discord.Interaction) -> bool:
         if self._is_admin(interaction):
             return True
-        await interaction.response.send_message("Bot owner or Discord administrator required.", ephemeral=True)
+        await interaction.response.send_message(
+            "Bot owner or Discord administrator required.",
+            ephemeral=True,
+        )
         return False
 
     def _install_commands(self) -> None:
-        target_group = app_commands.Group(name="target", description="Dispatch StarIntel targets")
+        target_group = app_commands.Group(
+            name="target",
+            description="Dispatch StarIntel targets",
+        )
         auth_group = app_commands.Group(
             name="auth",
             description="Manage Discord-side StarIntel authorization",
         )
-        radar_group = app_commands.Group(name="radar", description="Configure document radar feeds")
+        radar_group = app_commands.Group(
+            name="radar",
+            description="Configure document radar feeds",
+        )
 
         @self.tree.command(name="search", description="Search StarIntel datasets")
         @app_commands.describe(
             query="Search query",
             dataset="Optional dataset; omitted searches all authorized datasets in the tenant",
             tenant="Tenant ID; defaults to llm",
-            source_dataset="Optional source dataset/view",
             limit="Number of matches to show (1-20)",
         )
         async def search(
@@ -121,7 +132,6 @@ class StarIntelBot(commands.Bot):
             query: str,
             dataset: str | None = None,
             tenant: str | None = None,
-            source_dataset: str | None = None,
             limit: app_commands.Range[int, 1, 20] = 10,
         ) -> None:
             if not await self._require_operator(interaction):
@@ -132,22 +142,29 @@ class StarIntelBot(commands.Bot):
                     query,
                     dataset=_trim(dataset),
                     tenant_id=_trim(tenant) or self.config.starintel.default_tenant_id,
-                    source_dataset=_trim(source_dataset),
                     limit=int(limit),
                 )
             except StarIntelError as exc:
-                await interaction.followup.send(f"StarIntel search failed: `{exc}`", ephemeral=True)
+                await interaction.followup.send(
+                    f"StarIntel search failed: `{exc}`",
+                    ephemeral=True,
+                )
                 return
             await interaction.followup.send(
                 format_search_results(result.documents, total_count=result.count),
                 ephemeral=True,
             )
 
-        @self.tree.command(name="datasets", description="Show dataset/tenant defaults and access model")
+        @self.tree.command(
+            name="datasets",
+            description="Show dataset/tenant defaults and access model",
+        )
         async def datasets(interaction: discord.Interaction) -> None:
             if not await self._require_operator(interaction):
                 return
-            hints = ", ".join(f"`{item}`" for item in self.config.starintel.dataset_hints) or "none"
+            hints = ", ".join(
+                f"`{item}`" for item in self.config.starintel.dataset_hints
+            ) or "none"
             await interaction.response.send_message(
                 "**StarIntel dataset access**\n"
                 "Search default: `all authorized datasets`\n"
@@ -227,7 +244,10 @@ class StarIntelBot(commands.Bot):
                     metadata=metadata,
                 )
             except StarIntelError as exc:
-                await interaction.followup.send(f"Target dispatch failed: `{exc}`", ephemeral=True)
+                await interaction.followup.send(
+                    f"Target dispatch failed: `{exc}`",
+                    ephemeral=True,
+                )
                 return
             accepted = response.get("accepted", True)
             await interaction.followup.send(
@@ -236,7 +256,10 @@ class StarIntelBot(commands.Bot):
                 ephemeral=True,
             )
 
-        @auth_group.command(name="add", description="Authorize a Discord user to operate StarIntel")
+        @auth_group.command(
+            name="add",
+            description="Authorize a Discord user to operate StarIntel",
+        )
         async def auth_add(interaction: discord.Interaction, user: discord.User) -> None:
             if not await self._require_admin(interaction):
                 return
@@ -246,7 +269,10 @@ class StarIntelBot(commands.Bot):
                 ephemeral=True,
             )
 
-        @auth_group.command(name="remove", description="Remove Discord-side StarIntel authorization")
+        @auth_group.command(
+            name="remove",
+            description="Remove Discord-side StarIntel authorization",
+        )
         async def auth_remove(interaction: discord.Interaction, user: discord.User) -> None:
             if not await self._require_admin(interaction):
                 return
@@ -257,13 +283,21 @@ class StarIntelBot(commands.Bot):
                 ephemeral=True,
             )
 
-        @auth_group.command(name="list", description="List Discord users authorized for StarIntel")
+        @auth_group.command(
+            name="list",
+            description="List Discord users authorized for StarIntel",
+        )
         async def auth_list(interaction: discord.Interaction) -> None:
             if not await self._require_admin(interaction):
                 return
             ids = self.state.list_authorized_users()
-            body = "\n".join(f"- <@{user_id}> (`{user_id}`)" for user_id in ids) or "No persisted users."
-            await interaction.response.send_message(f"**Authorized users**\n{body}"[:1900], ephemeral=True)
+            body = "\n".join(
+                f"- <@{user_id}> (`{user_id}`)" for user_id in ids
+            ) or "No persisted users."
+            await interaction.response.send_message(
+                f"**Authorized users**\n{body}"[:1900],
+                ephemeral=True,
+            )
 
         @radar_group.command(
             name="configure",
@@ -274,7 +308,6 @@ class StarIntelBot(commands.Bot):
             query="StarIntel search query",
             dataset="Optional dataset; omitted watches all authorized datasets in the tenant",
             tenant="Tenant ID; defaults to llm",
-            source_dataset="Optional source dataset/view",
         )
         async def radar_configure(
             interaction: discord.Interaction,
@@ -282,7 +315,6 @@ class StarIntelBot(commands.Bot):
             query: str,
             dataset: str | None = None,
             tenant: str | None = None,
-            source_dataset: str | None = None,
         ) -> None:
             if not await self._require_operator(interaction):
                 return
@@ -298,7 +330,7 @@ class StarIntelBot(commands.Bot):
                 query=query.strip(),
                 dataset=_trim(dataset),
                 tenant_id=_trim(tenant) or self.config.starintel.default_tenant_id,
-                source_dataset=_trim(source_dataset),
+                source_dataset=None,
                 created_by=interaction.user.id,
             )
             await self.radars.reconcile()
@@ -310,11 +342,17 @@ class StarIntelBot(commands.Bot):
             )
 
         @radar_group.command(name="off", description="Disable radar in a channel")
-        async def radar_off(interaction: discord.Interaction, channel: discord.TextChannel) -> None:
+        async def radar_off(
+            interaction: discord.Interaction,
+            channel: discord.TextChannel,
+        ) -> None:
             if not await self._require_operator(interaction):
                 return
             if interaction.guild_id is None:
-                await interaction.response.send_message("This command must run in a server.", ephemeral=True)
+                await interaction.response.send_message(
+                    "This command must run in a server.",
+                    ephemeral=True,
+                )
                 return
             disabled = self.state.disable_radar(interaction.guild_id, channel.id)
             await self.radars.reconcile()
@@ -323,12 +361,18 @@ class StarIntelBot(commands.Bot):
                 ephemeral=True,
             )
 
-        @radar_group.command(name="list", description="List active radars in this Discord server")
+        @radar_group.command(
+            name="list",
+            description="List active radars in this Discord server",
+        )
         async def radar_list(interaction: discord.Interaction) -> None:
             if not await self._require_operator(interaction):
                 return
             if interaction.guild_id is None:
-                await interaction.response.send_message("This command must run in a server.", ephemeral=True)
+                await interaction.response.send_message(
+                    "This command must run in a server.",
+                    ephemeral=True,
+                )
                 return
             specs = self.state.list_radars(interaction.guild_id)
             lines = ["**Active radars**"]
@@ -340,7 +384,10 @@ class StarIntelBot(commands.Bot):
                 )
             if len(lines) == 1:
                 lines.append("No active radars.")
-            await interaction.response.send_message("\n".join(lines)[:1900], ephemeral=True)
+            await interaction.response.send_message(
+                "\n".join(lines)[:1900],
+                ephemeral=True,
+            )
 
         @radar_group.command(name="now", description="Trigger an immediate poll for a radar")
         async def radar_now(interaction: discord.Interaction, radar_id: int) -> None:
@@ -352,7 +399,10 @@ class StarIntelBot(commands.Bot):
                 ephemeral=True,
             )
 
-        @self.tree.command(name="document", description="Render one search match as radar Markdown")
+        @self.tree.command(
+            name="document",
+            description="Render one search match as radar Markdown",
+        )
         async def document(interaction: discord.Interaction, query: str) -> None:
             if not await self._require_operator(interaction):
                 return
@@ -365,12 +415,18 @@ class StarIntelBot(commands.Bot):
                     limit=1,
                 )
             except StarIntelError as exc:
-                await interaction.followup.send(f"Lookup failed: `{exc}`", ephemeral=True)
+                await interaction.followup.send(
+                    f"Lookup failed: `{exc}`",
+                    ephemeral=True,
+                )
                 return
             if not result.documents:
                 await interaction.followup.send("No matching document.", ephemeral=True)
                 return
-            await interaction.followup.send(format_document_markdown(result.documents[0]), ephemeral=True)
+            await interaction.followup.send(
+                format_document_markdown(result.documents[0]),
+                ephemeral=True,
+            )
 
         self.tree.add_command(target_group)
         self.tree.add_command(auth_group)
