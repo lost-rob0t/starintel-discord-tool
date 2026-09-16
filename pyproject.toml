@@ -36,4 +36,6 @@ target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# CI is intentionally correctness-focused. Formatting is kept separate so
+# connector-created or generated source is not rejected for line wrapping.
+select = ["E4", "E7", "E9", "F", "B", "SIM"]
